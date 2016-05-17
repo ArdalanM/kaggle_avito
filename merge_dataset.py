@@ -27,10 +27,10 @@ def loadFileinZipFile(zip_filename, dtypes=None, parsedate=None, password=None, 
 
 
 print("Loading train parts")
-pdCategory, _ = loadFileinZipFile(FOLDER + "data/Category.csv.zip")
-pdLocation, _ = loadFileinZipFile(FOLDER + "data/Location.csv.zip")
-pdItemPairs_train, _ = loadFileinZipFile(FOLDER + "data/ItemPairs_train.csv.zip")
-pdItemInfo_train, _ = loadFileinZipFile(FOLDER + "data/ItemInfo_train.csv.zip")
+pdCategory, _ = loadFileinZipFile(FOLDER + "data/Category.csv.zip", encoding='utf-8')
+pdLocation, _ = loadFileinZipFile(FOLDER + "data/Location.csv.zip",  encoding='utf-8')
+pdItemPairs_train, _ = loadFileinZipFile(FOLDER + "data/ItemPairs_train.csv.zip", encoding='utf-8')
+pdItemInfo_train, _ = loadFileinZipFile(FOLDER + "data/ItemInfo_train.csv.zip", encoding='utf-8')
 
 print("Merging all for itemID_1")
 item1 = pd.merge(pdItemInfo_train, pdItemPairs_train, how='inner', left_on='itemID', right_on='itemID_1')
@@ -64,7 +64,13 @@ for col in pdtrain.columns.tolist():
 pdtrain.rename(columns={'isDuplicate_1': 'isDuplicate'}, inplace=True)
 pdtrain.rename(columns={'generationMethod_1': 'generationMethod'}, inplace=True)
 
-pdtrain.to_csv(FOLDER + 'data/train_merged.csv', index=None)
+len_pdtrain = 2991396
+
+pdtrain_part1 = pdtrain.loc[:1e6]
+pdtrain_part2 = pdtrain.loc[1e6+1:]
+
+pdtrain_part1.to_hdf(FOLDER + 'data/train_merged-part1.h', 'w')
+pdtrain_part2.to_hdf(FOLDER + 'data/train_merged-part2.h', 'w')
 
 
 
@@ -102,7 +108,7 @@ for col in pdtrain.columns.tolist():
         new_name = col + '_2'
         print("{} => {}".format(old_name, new_name))
         pdtrain.rename(columns={old_name: new_name}, inplace=True)
-pdtrain.to_csv(FOLDER + 'data/test_merged.csv', index=None)
 
 
+pdtrain.to_hdf(FOLDER + 'data/test_merged.h', 'wb')
 
