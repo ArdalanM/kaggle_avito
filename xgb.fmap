@@ -1,0 +1,17 @@
+0	title_diff_len	q
+1	title_dlevenshtein	q
+2	title_jarowinkler	q
+3	title_num_same	q
+4	description_diff_len	q
+5	description_dlevenshtein	q
+6	description_jarowinkler	q
+7	price_diff	q
+8	attrsJSON_diff_len	q
+9	attrsJSON_dlevenshtein	q
+10	attrsJSON_jarowinkler	q
+11	images_diff_number	q
+12	metroID_same	q
+13	locationID_same	q
+14	regionID_same	q
+15	haversine	q
+16	categoryID_same	q

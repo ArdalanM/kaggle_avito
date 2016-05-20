@@ -32,35 +32,37 @@ pdLocation, _ = loadFileinZipFile(FOLDER + "data/Location.csv.zip",  encoding='u
 pdItemPairs_train, _ = loadFileinZipFile(FOLDER + "data/ItemPairs_train.csv.zip", encoding='utf-8')
 pdItemInfo_train, _ = loadFileinZipFile(FOLDER + "data/ItemInfo_train.csv.zip", encoding='utf-8')
 
-print("Merging all for itemID_1")
-item1 = pd.merge(pdItemInfo_train, pdItemPairs_train, how='inner', left_on='itemID', right_on='itemID_1')
+print("MERGING DATA WITH itemID_1")
+pdItemInfo_train.rename(columns={'itemID':'itemID_1'}, inplace=True)
+item1 = pd.merge(pdItemPairs_train, pdItemInfo_train, how='inner', on='itemID_1')
 item1 = pd.merge(item1, pdCategory, how='inner', on='categoryID')
 item1 = pd.merge(item1, pdLocation, how='inner', on='locationID')
-
-assert np.mean((item1['itemID'] - item1['itemID_1'])) == 0
-item1.drop(['itemID_1'], 1, inplace=True)
-
-print("Renaming...")
+print("Renaming... ITEM_1")
+print("------------------")
 for col in item1.columns.tolist():
-    if not col.endswith('_2'):
+    if not col.endswith('_1') and not col.endswith('_2') :
         old_name = col
         new_name = col + '_1'
         print("{} => {}".format(old_name, new_name))
         item1.rename(columns={old_name: new_name}, inplace=True)
+print("------------------")
 
-print("Merging item2 into item1")
-pdtrain = pd.merge(item1, pdItemInfo_train, how='inner', left_on='itemID_2', right_on='itemID')
-pdtrain.drop(['itemID_2'], 1, inplace=True)
+print("MERGING DATA WITH itemID_2")
+pdItemInfo_train.rename(columns={'itemID_1':'itemID_2'}, inplace=True)
+pdtrain = pd.merge(item1, pdItemInfo_train, how='inner', on='itemID_2')
 pdtrain = pd.merge(pdtrain, pdCategory, how='inner', on='categoryID')
 pdtrain = pd.merge(pdtrain, pdLocation, how='inner', on='locationID')
 
-print("Renaming...")
+print("Renaming... ITEM_2")
+print("------------------")
 for col in pdtrain.columns.tolist():
-    if not col.endswith("_1"):
+    if not col.endswith('_1') and not col.endswith('_2') :
         old_name = col
         new_name = col + '_2'
         print("{} => {}".format(old_name, new_name))
         pdtrain.rename(columns={old_name: new_name}, inplace=True)
+print("------------------")
+
 pdtrain.rename(columns={'isDuplicate_1': 'isDuplicate'}, inplace=True)
 pdtrain.rename(columns={'generationMethod_1': 'generationMethod'}, inplace=True)
 
@@ -81,34 +83,40 @@ pdItemPairs_train, _ = loadFileinZipFile(FOLDER + "data/ItemPairs_test.csv.zip")
 pdItemInfo_train, _ = loadFileinZipFile(FOLDER + "data/ItemInfo_test.csv.zip")
 
 # Merging all for itemID_1
-item1 = pd.merge(pdItemInfo_train, pdItemPairs_train, how='inner', left_on='itemID', right_on='itemID_1')
+print("MERGING DATA WITH itemID_1")
+pdItemInfo_train.rename(columns={'itemID':'itemID_1'}, inplace=True)
+item1 = pd.merge(pdItemPairs_train, pdItemInfo_train, how='inner', on='itemID_1')
 item1 = pd.merge(item1, pdCategory, how='inner', on='categoryID')
 item1 = pd.merge(item1, pdLocation, how='inner', on='locationID')
 
-assert np.mean((item1['itemID'] - item1['itemID_1'])) == 0
-item1.drop(['itemID_1'], 1, inplace=True)
-
+print("Renaming... ITEM_1")
+print("------------------")
 for col in item1.columns.tolist():
-    if not col.endswith('_2'):
+    if not col.endswith('_1') and not col.endswith('_2') :
         old_name = col
         new_name = col + '_1'
         print("{} => {}".format(old_name, new_name))
         item1.rename(columns={old_name: new_name}, inplace=True)
+print("------------------")
 
-# Merging item2 into item1
-
-pdtrain = pd.merge(item1, pdItemInfo_train, how='inner', left_on='itemID_2', right_on='itemID')
-pdtrain.drop(['itemID_2'], 1, inplace=True)
+print("MERGING DATA WITH itemID_2")
+pdItemInfo_train.rename(columns={'itemID_1':'itemID_2'}, inplace=True)
+pdtrain = pd.merge(item1, pdItemInfo_train, how='inner', on='itemID_2')
 pdtrain = pd.merge(pdtrain, pdCategory, how='inner', on='categoryID')
 pdtrain = pd.merge(pdtrain, pdLocation, how='inner', on='locationID')
 
+print("Renaming... ITEM_2")
+print("------------------")
 for col in pdtrain.columns.tolist():
-    if not col.endswith("_1"):
+    if not col.endswith('_1') and not col.endswith('_2') :
         old_name = col
         new_name = col + '_2'
         print("{} => {}".format(old_name, new_name))
         pdtrain.rename(columns={old_name: new_name}, inplace=True)
+print("------------------")
 
-
+pdtrain.rename(columns={'id_1': 'id'}, inplace=True)
 pdtrain.to_hdf(FOLDER + 'data/test_merged.h', 'wb')
+
+print("DONE... TEST stored")
 
