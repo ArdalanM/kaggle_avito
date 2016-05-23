@@ -14,13 +14,14 @@ import keras.backend as K
 
 from xgboost import XGBModel
 from sklearn import *
+from sklearn.cross_validation import KFold, StratifiedKFold
 from keras import optimizers
 from keras.models import Sequential
 from keras.utils import np_utils
 
 from keras.layers import core
 
-from ml_metrics import auc
+# from ml_metrics import auc
 
 
 class CVutils():
@@ -61,7 +62,7 @@ class CVutils():
     def eval_func(self, ytrue, ypredproba):
 
         # ytrue = np_utils.to_categorical(ytrue, 2)
-        return auc(ytrue, ypredproba)
+        return metrics.roc_auc_score(ytrue, ypredproba)
 
     def xgb_eval_func(self, ypred, dtrain):
         ytrue = dtrain.get_label().astype(int)
@@ -415,56 +416,38 @@ class MLP(genericKerasCLF):
 
         return "".join(added_params)
 
+
 # General params
 STORE = True
-n_folds = 2
-nthread = 8
+n_folds = 5
+nthread = 12
 model_seed = 456
 cv_seed = 123
 
 
-X, Y, X_test, test_idx, pd_data, data_name, col_feats = LoadingDatasets().LoadParseData('D1_18may.p')
+X, Y, X_test, test_idx, pd_data, data_name, col_feats = LoadingDatasets().LoadParseData('D1_with_adspecific_features_22may.p')
 D0 = (X, Y, X_test, test_idx, data_name, col_feats)
 
-indice = 2393116
-xtrain = X[:indice]
-ytrain = Y[:indice]
-xtest = X[indice+1:]
-ytest = Y[indice+1:]
+ratio = 0.5
+xtrain = X[:ratio*len(X)]
+ytrain = Y[:ratio*len(X)]
+xtest = X[ratio*len(X)+100000:]
+ytest = Y[ratio*len(X)+100000:]
 
 from xgboost import XGBClassifier
-clf = XGBClassifier(max_depth=8, learning_rate=0.1, n_estimators=1000, objective="binary:logistic",
+clf = XGBClassifier(max_depth=8, learning_rate=0.1, n_estimators=200, objective="binary:logistic",
                     nthread=nthread, seed=model_seed)
+clf.fit(xtrain, ytrain, eval_set=[(xtest, ytest)], eval_metric='auc')
 
-clf.fit(xtrain, ytrain, eval_set=[(xtest, ytest)], eval_metric='auc', early_stopping_rounds=100)
-
-
-
-
-
-
+y_pred = clf.predict_proba(X_test)
+y_submission = y_pred[:, 1]
+pd_submission = pd.DataFrame({'id': test_idx, 'probability': y_submission})
+pd_submission.to_csv(SAVE_FOLDER + "submission.csv", index=None)
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-generic_tree_params = {'n_jobs': nthread, 'random_state': model_seed, 'n_estimators': 200}
+generic_tree_params = {'n_jobs': nthread, 'random_state': model_seed, 'n_estimators': 5}
 
 tree_cla1 = {'max_features': 50, 'criterion': 'entropy', 'max_depth': 5, 'class_weight': 'balanced'}
 tree_cla1.update(generic_tree_params)
@@ -472,7 +455,7 @@ tree_cla1.update(generic_tree_params)
 tree_reg1 = {'max_features': 50, 'criterion': 'mse', 'max_depth': 5}
 tree_reg1.update(generic_tree_params)
 
-generic_xgb_params = {'n_estimators': 1000, 'nthread': nthread,
+generic_xgb_params = {'n_estimators': 400, 'nthread': nthread,
                       'seed': model_seed, 'early_stopping_rounds': 100, 'verbose': True}
 
 xgb_reg1 = {'objective': 'reg:linear', 'max_depth': 5,
@@ -507,11 +490,12 @@ params_mlp = {'batch_size': 256, 'nb_epoch': 30, 'verbose': 2, 'metrics': ["accu
               ],
               'shuffle': True, 'rebuild': True}
 
+
 clfs = [
     # (D2, MLP(class_weight={0: 1, 1: 30}, **params_mlp)),
 
     (D0, XGB(eval_metric=utils.xgb_eval_func, **xgb_cla1),
-    cross_validation.StratifiedShuffleSplit(D0[1], n_iter=2, test_size=0.2, train_size=None, random_state=cv_seed)),
+    KFold(len(D0[1]), n_folds=n_folds, random_state=cv_seed)),
 ]
 
 def train_and_predict(xtrain, ytrain, xval, yval, X_test, clf):
@@ -615,9 +599,9 @@ for clf_indice, data_clf in enumerate(clfs):
         utils.saveDicLogs(dic_logs, SAVE_FOLDER + filename + '.p')
 
     # submission
-    output_filename = SAVE_FOLDER + filename + '.csv'
-    np.savetxt(output_filename, np.vstack((test_idx, test_pred_prob)).T,
-               delimiter=',', fmt='%i,%.10f', header='id,probability', comments="")
+    y_pred = clf.predict_proba(X_test)
+    pd_submission = pd.DataFrame({'id': test_idx, 'probability': test_pred_prob})
+    pd_submission.to_csv(SAVE_FOLDER + filename + ".csv", index=None)
 
 
 
