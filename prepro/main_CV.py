@@ -1,5 +1,7 @@
 __author__ = 'Ardalan'
 
+# IT IS OFFICIAL: EVGENY DO NOT KNOW HOW TO USE GITHUB :)
+
 FOLDER = "/home/ardalan/Documents/kaggle/avito/"
 SAVE_FOLDER = FOLDER + "/diclogs/"
 
