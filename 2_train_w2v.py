@@ -1,19 +1,18 @@
 __author__ = 'Ardalan'
 """
 This script will:
-
-1: load:
-    - train_merged-part1.h
-    - train_merged-part2.h
-    - test_merged.h
-2: create train and test similarity features. Each created features is a pandas DataFrame
-3: Dump those features in a binary file
+Load train and test data ans train w2v
 """
 
 FOLDER = "/home/ardalan/Documents/kaggle/avito/"
 import gensim
+import os
+import shutil
 import numpy as np
 import pandas as pd
+import logging
+logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
+
 
 def load_data():
 
@@ -29,8 +28,7 @@ def load_data():
     return pd_data
 
 
-
-
+print("Loading data...")
 pd_data = load_data()
 
 t1_desc1 = pd_data.title_1 + " " + pd_data.description_1
@@ -40,8 +38,17 @@ t_desc.drop_duplicates(inplace=True)
 t_desc.dropna(inplace=True)
 t_desc = t_desc.apply(lambda r: r.replace("\n", " "))
 
+del pd_data
+
 
 dest_folder = FOLDER + "data/w2v_t_desc/"
+
+# Check if folder exist, if no, create the folder to store rnn data
+if os.path.exists(dest_folder):
+    print("Folder exist already fool!")
+else:
+    os.mkdir(dest_folder)
+
 
 # sentences=None
 size = 100
@@ -84,6 +91,6 @@ class MySentences(object):
             yield sentence.split()
 
 
-sentences = MySentences(t_desc.values)
+sentences = MySentences(t_desc)
 model = gensim.models.Word2Vec(sentences)
 model.save(dest_path)

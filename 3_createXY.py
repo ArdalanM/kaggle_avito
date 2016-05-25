@@ -1,102 +1,19 @@
-__author__ = 'Ardalan'
 """
-This script will:
+@author: Ardalan MEHRANI <ardalan.mehrani@iosquare.com>
+@brief: This script will:
 
-1: load:
-    - train_merged-part1.h
-    - train_merged-part2.h
-    - test_merged.h
-2: create train and test similarity features. Each created features is a pandas DataFrame
-3: Dump those features in a binary file
+        1: load:
+            - train_merged-part1.h
+            - train_merged-part2.h
+            - test_merged.h
+        2: create train and test similarity features. Each created features is a pandas DataFrame
+        3: Dump those features in a binary file
 """
 
 FOLDER = "/home/ardalan/Documents/kaggle/avito/"
-import jellyfish
+
 import numpy as np
 import pandas as pd
-from math import radians
-from pyxdameraulevenshtein import normalized_damerau_levenshtein_distance
-
-
-class genericStringSimilarities():
-
-    def levenshtein(self, s1, s2):
-        return jellyfish.levenshtein_distance(s1, s2)
-
-    def levenshtein_len_normalized(self, s1, s2):
-        return self.levenshtein(s1, s2) / (len(s1) + len(s1))
-
-    def damerau_levenshtein(self, s1, s2):
-        return normalized_damerau_levenshtein_distance(s1, s2)
-
-    def jaro(self, s1, s2):
-        return jellyfish.jaro_distance(s1, s2)
-
-    def jaro_winkler(self, s1, s2):
-        return jellyfish.jaro_winkler(s1, s2)
-
-    def hamming(self, s1, s2):
-        return jellyfish.hamming_distance(s1, s2)
-
-class genericGeoSimilarities():
-    pass
-
-class GeoFeatures():
-
-    def __init__(self, df):
-        self.df = df
-
-    def add_haversine(self, lon1, lat1, lon2, lat2):
-        """
-        Calculate the great circle distance between two points
-        on the earth (specified in decimal degrees)
-        """
-        # convert decimal degrees to radians
-        lon1 = self.df[lon1].apply(radians).values
-        lat1 = self.df[lat1].apply(radians).values
-        lon2 = self.df[lon2].apply(radians).values
-        lat2 = self.df[lat2].apply(radians).values
-
-        # haversine formula
-        dlon = lon2 - lon1
-        dlat = lat2 - lat1
-        a = np.sin(dlat / 2) ** 2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon / 2) ** 2
-        c = 2 * np.arcsin(np.sqrt(a))
-        r = 6371  # Radius of earth in kilometers. Use 3956 for miles
-        return c * r
-
-class StringFeatures(genericStringSimilarities):
-
-    def __init__(self, df):
-        self.df = df
-
-    def addCol(self, col1, col2, function):
-        new_feat = []
-        ctx = 0
-        for x, y in zip(col1, col2):
-            ctx += 1
-            new_feat.append(function(x, y))
-            if ctx % 100000 == 0:
-                print(ctx)
-        return new_feat
-
-    def add_levenshtein(self, col1, col2):
-        return self.addCol(self.df[col1], self.df[col2], self.levenshtein)
-
-    def add_levenshtein_len_normalized(self, col1, col2):
-        return self.addCol(self.df[col1], self.df[col2], self.levenshtein_len_normalized)
-
-    def add_damerau_levenshtein(self, col1, col2):
-        return self.addCol(self.df[col1], self.df[col2], self.damerau_levenshtein)
-
-    def add_jaro(self, col1, col2):
-        return self.addCol(self.df[col1], self.df[col2], self.jaro)
-
-    def add_jaro_winkler(self, col1, col2):
-        return self.addCol(self.df[col1], self.df[col2], self.jaro_winkler)
-
-    def add_hamming(self, col1, col2):
-        return self.addCol(self.df[col1], self.df[col2], self.hamming)
 
 
 pdtrain1 = pd.read_hdf(FOLDER + "data/train_merged-part1.h")
