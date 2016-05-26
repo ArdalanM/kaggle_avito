@@ -5,12 +5,10 @@
 
 import os
 import pandas as pd
+import config
 from lib import utils, logging_utils, pkl_utils
 
-FOLDER = "/home/ardalan/Documents/kaggle/avito/"
-DATA_FOLDER = os.path.join(FOLDER, 'data')
-CODE_FOLDER = os.path.join(FOLDER, 'code')
-
+print(config.DATA_FOLDER)
 
 def load_merge(Category, Location, ItemPair, ItemInfo):
     logger.info("Loading train parts")
@@ -74,32 +72,31 @@ def load_merge(Category, Location, ItemPair, ItemInfo):
 
     return pdtrain
 
-
 if __name__ == "__main__":
 
-    logger = logging_utils._get_logger(CODE_FOLDER, "1_load_merge_data.log")
+    logger = logging_utils._get_logger(config.CODE_FOLDER, "1_load_merge_data.log")
 
     logger.info("load train set")
-    Category = os.path.join(FOLDER, "data/Category.csv.zip")
-    Location = os.path.join(FOLDER, "data/Location.csv.zip")
-    ItemPair = os.path.join(FOLDER, "data/ItemPairs_train.csv.zip")
-    ItemInfo = os.path.join(FOLDER, "data/ItemInfo_train.csv.zip")
+    Category = os.path.join(config.DATA_FOLDER, "Category.csv.zip")
+    Location = os.path.join(config.DATA_FOLDER, "Location.csv.zip")
+    ItemPair = os.path.join(config.DATA_FOLDER, "ItemPairs_train.csv.zip")
+    ItemInfo = os.path.join(config.DATA_FOLDER, "ItemInfo_train.csv.zip")
     pdtrain = load_merge(Category, Location, ItemPair, ItemInfo)
 
     logger.info("load test set")
-    Category_test = os.path.join(FOLDER, "data/Category.csv.zip")
-    Location_test = os.path.join(FOLDER, "data/Location.csv.zip")
-    ItemPair_test = os.path.join(FOLDER, "data/ItemPairs_test.csv.zip")
-    ItemInfo_test = os.path.join(FOLDER, "data/ItemInfo_test.csv.zip")
+    Category_test = os.path.join(config.DATA_FOLDER, "Category.csv.zip")
+    Location_test = os.path.join(config.DATA_FOLDER, "Location.csv.zip")
+    ItemPair_test = os.path.join(config.DATA_FOLDER, "ItemPairs_test.csv.zip")
+    ItemInfo_test = os.path.join(config.DATA_FOLDER, "ItemInfo_test.csv.zip")
     pdtest = load_merge(Category_test, Location_test, ItemPair_test, ItemInfo_test)
 
     logger.info("merge both dataset")
     pdall = pdtrain.append(pdtest)
 
     logger.info("save to pickle")
-    pkl_utils._save(os.path.join(DATA_FOLDER, "train_raw.pkl"), pdtrain)
-    pkl_utils._save(os.path.join(DATA_FOLDER, "test_raw.pkl"), pdtest)
-    pkl_utils._save(os.path.join(DATA_FOLDER, "all_raw.pkl"), pdall)
+    pkl_utils._save(os.path.join(config.PICKLE_DATA_FOLDER, "train_raw.pkl"), pdtrain)
+    pkl_utils._save(os.path.join(config.PICKLE_DATA_FOLDER, "test_raw.pkl"), pdtest)
+    pkl_utils._save(os.path.join(config.PICKLE_DATA_FOLDER, "all_raw.pkl"), pdall)
 
 
 

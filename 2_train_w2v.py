@@ -1,96 +1,202 @@
-__author__ = 'Ardalan'
+# -*- coding: utf-8 -*-
 """
-This script will:
-Load train and test data ans train w2v
+@author: Ardalan MEHRANI <ardalan.mehrani@iosquare.com>
+@brief: word2vec & doc2vec trainer
 """
-
-FOLDER = "/home/ardalan/Documents/kaggle/avito/"
-import gensim
 import os
-import shutil
-import numpy as np
-import pandas as pd
-import logging
-logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
+import config
+
+from gensim.models import Word2Vec, Doc2Vec
+from gensim.models.doc2vec import TaggedDocument
+
+from lib import nlp_utils
+from lib import logging_utils, pkl_utils
+
+# tune the token pattern to get a better correlation with y_train
+# token_pattern = r"(?u)\b\w\w+\b"
+# token_pattern = r"\w{1,}"
+# token_pattern = r"\w+"
+# token_pattern = r"[\w']+"
+token_pattern = " "  # just split the text into tokens
 
 
-def load_data():
-
-    pdtrain1 = pd.read_hdf(FOLDER + "data/train_merged-part1.h")
-    pdtrain2 = pd.read_hdf(FOLDER + "data/train_merged-part2.h")
-    pdtrain = pdtrain1.append(pdtrain2)
-    pdtest = pd.read_hdf(FOLDER + "data/test_merged.h")
-    pd_data = pdtrain.append(pdtest)
-
-    del pdtrain1
-    del pdtrain2
-    del pdtest
-    return pd_data
-
-
-print("Loading data...")
-pd_data = load_data()
-
-t1_desc1 = pd_data.title_1 + " " + pd_data.description_1
-t2_desc2 = pd_data.title_2 + " " + pd_data.description_2
-t_desc = t1_desc1.append(t2_desc2)
-t_desc.drop_duplicates(inplace=True)
-t_desc.dropna(inplace=True)
-t_desc = t_desc.apply(lambda r: r.replace("\n", " "))
-
-del pd_data
+# W2V defaut params
+# size = 100
+# alpha = 0.025
+# window = 5
+# min_count = 5
+# max_vocab_size = None
+# sample = 1e-3
+# seed = 1
+# workers = 4
+# min_alpha = 0.0001
+# sg = 0
+# hs = 0
+# negative = 5
+# cbow_mean = 1
+# iter = 5
+# null_word = 0
 
 
-dest_folder = FOLDER + "data/w2v_t_desc/"
-
-# Check if folder exist, if no, create the folder to store rnn data
-if os.path.exists(dest_folder):
-    print("Folder exist already fool!")
-else:
-    os.mkdir(dest_folder)
-
-
-# sentences=None
-size = 100
-alpha = 0.025
-window = 5
-min_count = 5
-max_vocab_size = None
-sample = 1e-3
-seed = 1
-workers = 4
-min_alpha = 0.0001
-sg = 0
-hs = 0
-negative = 5
-cbow_mean = 1
-iter = 5
-null_word = 0
-
-params = {'size': size, 'alpha': alpha, 'window': window, 'min_count': min_count,
-          'max_vocab_size': max_vocab_size, 'sample': sample, 'seed': seed, 'workers': workers,
-          'min_alpha': min_alpha, 'sg': sg, 'hs': hs, 'negative': negative, 'cbow_mean': cbow_mean,
-          'iter': iter, 'null_word': null_word}
-
-dest_filename = "w2v_size{}_win{}_mc{}_sample{}_iter{}.model".format(
-    size, window, min_count, sample, iter)
-
-
-dest_path = dest_folder + dest_filename
-print("-" * 50)
-print("Saving model path: \n{}".format(dest_folder + dest_filename))
-print("w2v params: \n{}".format(str(params)))
-
-
-class MySentences(object):
-    def __init__(self, sentences):
-        self.sentences = sentences
+# ---------------------- Word2Vec ----------------------
+class DataFrameSentences(object):
+    def __init__(self, df, columns):
+        self.df = df
+        self.columns = columns
 
     def __iter__(self):
-        for sentence in self.sentences:
-            yield sentence.split()
+        for column in self.columns:
+            for sentence in self.df[column]:
+                tokens = nlp_utils._tokenize(sentence, token_pattern)
+                yield tokens
 
 
-sentences = MySentences(t_desc)
-model = gensim.models.Word2Vec(sentences)
-model.save(dest_path)
+class DataFrameWord2Vec:
+    def __init__(self, df, columns, model_param):
+        self.df = df
+        self.columns = columns
+        self.model_param = model_param
+        self.model = Word2Vec(sg=self.model_param["sg"],
+                              hs=self.model_param["hs"],
+                              alpha=self.model_param["alpha"],
+                              min_alpha=self.model_param["alpha"],
+                              min_count=self.model_param["min_count"],
+                              size=self.model_param["size"],
+                              sample=self.model_param["sample"],
+                              window=self.model_param["window"],
+                              workers=self.model_param["workers"])
+
+    def train(self):
+        # build vocabulary
+        self.sentences = DataFrameSentences(self.df, self.columns)
+        self.model.build_vocab(self.sentences)
+        # train for n_epoch
+        for i in range(self.model_param["n_epoch"]):
+            self.sentences = DataFrameSentences(self.df, self.columns)
+            self.model.train(self.sentences)
+            self.model.alpha *= self.model_param["learning_rate_decay"]
+            self.model.min_alpha = self.model.alpha
+        return self
+
+    def save(self, model_dir, model_name):
+        fname = os.path.join(model_dir, model_name)
+        self.model.save(fname)
+
+
+class DataFrameLabelSentences(object):
+    def __init__(self, df, columns):
+        self.df = df
+        self.columns = columns
+        self.cnt = -1
+        self.sent_label = {}
+
+    def __iter__(self):
+        for column in self.columns:
+            for sentence in self.df[column]:
+                if not sentence in self.sent_label:
+                    self.cnt += 1
+                    self.sent_label[sentence] = "SENT_%d" % self.cnt
+                tokens = nlp_utils._tokenize(sentence, token_pattern)
+                yield TaggedDocument(words=tokens, tags=[self.sent_label[sentence]])
+
+
+class DataFrameDoc2Vec(DataFrameWord2Vec):
+    def __init__(self, df, columns, model_param):
+        super().__init__(df, columns, model_param)
+        self.model = Doc2Vec(dm=self.model_param["dm"],
+                             hs=self.model_param["hs"],
+                             alpha=self.model_param["alpha"],
+                             min_alpha=self.model_param["alpha"],
+                             min_count=self.model_param["min_count"],
+                             size=self.model_param["size"],
+                             sample=self.model_param["sample"],
+                             window=self.model_param["window"],
+                             workers=self.model_param["workers"])
+
+    def train(self):
+        # build vocabulary
+        self.sentences = DataFrameLabelSentences(self.df, self.columns)
+        self.model.build_vocab(self.sentences)
+        # train for n_epoch
+        for i in range(self.model_param["n_epoch"]):
+            self.sentences = DataFrameLabelSentences(self.df, self.columns)
+            self.model.train(self.sentences)
+            self.model.alpha *= self.model_param["learning_rate_decay"]
+            self.model.min_alpha = self.model.alpha
+        return self
+
+    def save(self, model_dir, model_name):
+        fname = os.path.join(model_dir, model_name)
+        self.model.save(fname)
+        pkl_utils._save("%s.sent_label" % fname, self.sentences.sent_label)
+
+
+# ---------------------- Main ----------------------
+logger = logging_utils._get_logger(config.CODE_FOLDER, "2_train_w2v.log")
+
+logger.info("KAGGLE: Loading: {}".format(config.ALL_DATA_RAW))
+df = pkl_utils._load(config.ALL_DATA_RAW)
+
+columns = ["title_1", "description_1", "title_2", "description_2"]
+columns = [col for col in columns if col in df.columns]
+
+logger.info("KAGGLE: Fillna, '\\n' ==> "" ")
+for col in columns:
+    df[col].fillna("", inplace=True)
+    df[col] = df[col].apply(lambda r: r.replace("\n", " "))
+
+# TRAINING DOC2VEC
+model_param = {
+    "alpha": config.W2V_ALPHA,
+    "learning_rate_decay": config.W2V_LEARNING_RATE_DECAY,
+    "n_epoch": config.W2V_N_EPOCH,
+    "sg": 1,  # not use
+    "dm": 1,
+    "hs": 1,
+    "min_count": config.W2V_MIN_COUNT,
+    "size": config.W2V_DIM,
+    "sample": 0.001,
+    "window": config.W2V_WINDOW,
+    "workers": config.W2V_WORKERS,
+}
+model_dir = config.WORD2VEC_MODEL_DIR
+model_name = "d2v_{}_split[{}]_s{}_win{}_mc{}_iter{}_decay{}.model".format(
+    config.ALL_DATA_RAW.split("_")[-1],
+    token_pattern,
+    model_param["size"],
+    model_param["window"],
+    model_param["min_count"],
+    model_param["n_epoch"],
+    model_param['learning_rate_decay'])
+doc2vec = DataFrameDoc2Vec(df, columns, model_param)
+doc2vec.train()
+doc2vec.save(model_dir, model_name)
+
+# TRAINING W2V
+model_param = {
+    "alpha": config.W2V_ALPHA,
+    "learning_rate_decay": config.W2V_LEARNING_RATE_DECAY,
+    "n_epoch": config.W2V_N_EPOCH,
+    "sg": 1,
+    "hs": 1,
+    "min_count": config.W2V_MIN_COUNT,
+    "size": config.W2V_DIM,
+    "sample": 0.001,
+    "window": config.W2V_WINDOW,
+    "workers": config.W2V_WORKERS,
+}
+model_dir = config.WORD2VEC_MODEL_DIR
+model_name = "w2v_{}_split[{}]_s{}_win{}_mc{}_iter{}_decay{}.model".format(
+    config.ALL_DATA_RAW.split("_")[-1],
+    token_pattern,
+    model_param["size"],
+    model_param["window"],
+    model_param["min_count"],
+    model_param["n_epoch"],
+    model_param['learning_rate_decay'])
+logger.info("KAGGLE: saving model in: {}".format(model_dir))
+logger.info("KAGGLE: model name: {}".format(model_name))
+logger.info("KAGGLE: training w2v with params: {}".format(model_param))
+word2vec = DataFrameWord2Vec(df, columns, model_param)
+word2vec.train()
+word2vec.save(model_dir, model_name)
