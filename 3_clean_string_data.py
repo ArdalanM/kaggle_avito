@@ -2,17 +2,19 @@
 """
 @author: Evgeny BAZAROV
 @author: Ardalan MEHRANI <ardalan.mehrani@iosquare.com>
-@brief: Clean string data
+@brief: Clean and Stemming
 """
 
-import gc
 import re
+import time
 import nltk
-import regex
-import numpy as np
-import pandas as pd
+import os
+import config
+
 import nltk.corpus
 from nltk import SnowballStemmer
+
+from lib import logging_utils, pkl_utils
 
 
 class BaseReplacer:
@@ -22,10 +24,10 @@ class BaseReplacer:
     def transform(self, text):
         for pattern, replace in self.pattern_replace_pair_list:
             try:
-                text = regex.sub(pattern, replace, text)
+                text = re.sub(pattern, replace, text)
             except:
                 pass
-        return regex.sub(r"\s+", " ", text).strip()
+        return re.sub(r"\s+", " ", text).strip()
 
 
 class LowerCaseConverter(BaseReplacer):
@@ -114,8 +116,69 @@ class NumberDigitMapper(BaseReplacer):
             ]
 
 
-stopwords = frozenset(word \
-                      for word in nltk.corpus.stopwords.words("russian") \
+class CorrectStemWords(BaseReplacer):
+    def __init__(self):
+
+        self.russian_pattern = re.compile(r"[а-я]")
+        self.english_pattern = re.compile(r"[a-z]")
+        self.word_digit_pattern = re.compile("[0-9a-z]")
+
+    def correctWord(self, w):
+        """ Corrects word by replacing characters with written similarly depending
+        on which language the word.
+        Fraudsters use this technique to avoid detection by anti-fraud algorithms.
+        """
+        if len(re.findall(self.russian_pattern, w)) > len(re.findall(self.english_pattern, w)):
+            return w.translate(eng_rusTranslateTable)
+        else:
+            return w.translate(rus_engTranslateTable)
+
+    def getWords(self, text, stemmRequired=True,
+                 correctWordRequired=True,
+                 excludeStopwordsRequired=True):
+        """ Splits the text into words, discards stop words and applies stemmer.
+        Parameters
+        ----------
+        text : str - initial string
+        stemmRequired : bool - flag whether stemming required
+        correctWordRequired : bool - flag whether correction of words required
+        """
+        cleanText = re.sub(r"\p{P}+", "", text)
+        cleanText = cleanText.replace("+", " ")
+        #     cleanText = text.replace(",", " ").replace(".", " ")
+        #     cleanText = re.sub(u'[^a-zа-я0-9]', ' ', text.lower())
+        if correctWordRequired:
+            if excludeStopwordsRequired:
+                words = [self.correctWord(w)
+                         if not stemmRequired or re.search(self.word_digit_pattern, w)
+                         else stemmer.stem(self.correctWord(w))
+                         for w in cleanText.split()
+                         if w not in stopwords]
+            else:
+                words = [self.correctWord(w)
+                         if not stemmRequired or re.search(self.word_digit_pattern, w)
+                         else stemmer.stem(self.correctWord(w))
+                         for w in cleanText.split()
+                         ]
+        else:
+            if excludeStopwordsRequired:
+                words = [w if not stemmRequired or re.search(self.word_digit_pattern, w)
+                         else stemmer.stem(w)
+                         for w in cleanText.split()
+                         if w not in stopwords]
+            else:
+                words = [w if not stemmRequired or re.search(self.word_digit_pattern, w)
+                         else stemmer.stem(w)
+                         for w in cleanText.split()
+                         ]
+
+        return " ".join(words)
+
+    def transform(self, text):
+        self.getWords(text)
+
+
+stopwords = frozenset(word for word in nltk.corpus.stopwords.words("russian")
                       if word != "не")
 stemmer = SnowballStemmer('russian')
 engChars = [ord(char) for char in u"cCyoOBaAKpPeE"]
@@ -124,79 +187,77 @@ eng_rusTranslateTable = dict(zip(engChars, rusChars))
 rus_engTranslateTable = dict(zip(rusChars, engChars))
 
 
-def correctWord(w):
-    """ Corrects word by replacing characters with written similarly depending
-    on which language the word.
-    Fraudsters use this technique to avoid detection by anti-fraud algorithms.
-    """
-    if len(re.findall(r"[а-я]", w)) > len(re.findall(r"[a-z]", w)):
-        return w.translate(eng_rusTranslateTable)
-    else:
-        return w.translate(rus_engTranslateTable)
+# ---------------------- Main ----------------------
+starttime = time.time()
+
+logger = logging_utils._get_logger(config.LOG_FOLDER, "3_clean_string_data.log")
+
+logger.info("KAGGLE: Loading: {}".format(config.ITEMINFO_RAW))
+df = pkl_utils._load(config.ITEMINFO_RAW)
 
 
-def getWords(text, stemmRequired=True,
-             correctWordRequired=True,
-             excludeStopwordsRequired=True):
-    """ Splits the text into words, discards stop words and applies stemmer.
-    Parameters
-    ----------
-    text : str - initial string
-    stemmRequired : bool - flag whether stemming required
-    correctWordRequired : bool - flag whether correction of words required
-    """
-    cleanText = re.sub(r"\p{P}+", "", text)
-    cleanText = cleanText.replace("+", " ")
-    #     cleanText = text.replace(",", " ").replace(".", " ")
-    #     cleanText = re.sub(u'[^a-zа-я0-9]', ' ', text.lower())
-    if correctWordRequired:
-        if excludeStopwordsRequired:
-            words = [correctWord(w) \
-                         if not stemmRequired or re.search("[0-9a-z]", w) \
-                         else stemmer.stem(correctWord(w)) \
-                     for w in cleanText.split() \
-                     if w not in stopwords]
-        else:
-            words = [correctWord(w) \
-                         if not stemmRequired or re.search("[0-9a-z]", w) \
-                         else stemmer.stem(correctWord(w)) \
-                     for w in cleanText.split()
-                     ]
-    else:
-        if excludeStopwordsRequired:
-            words = [w \
-                         if not stemmRequired or re.search("[0-9a-z]", w) \
-                         else stemmer.stem(w) \
-                     for w in cleanText.split() \
-                     if w not in stopwords]
-        else:
-            words = [w \
-                         if not stemmRequired or re.search("[0-9a-z]", w) \
-                         else stemmer.stem(w) \
-                     for w in cleanText.split()
-                     ]
+columns = ["title", "description"]
+columns = [col for col in columns if col in df.columns]
 
-    return " ".join(words)
-
-
-pattern_replace_pair_list = [
-    # Remove single & double apostrophes
-    ("[\"]+", r""),
-    ("[\']+", r""),
-    # Remove product codes (long words (>5 characters) that are all caps, numbers or mix pf both)
-    # don't use raw string format
-    #             ("[ ]?\\b[0-9A-Z-]{5,}\\b", ""),
+processors = [
+    BaseReplacer([
+        # Remove single & double apostrophes
+        ("[\"]+", r""),
+        ("[\']+", r""),
+    ]),
+    LowerCaseConverter(),
+    LetterLetterSplitter(),
+    DigitLetterSplitter(),
+    DigitCommaDigitMerger(),
+    NumberDigitMapper(),
+    CorrectStemWords()
 ]
 
-text = BaseReplacer(pattern_replace_pair_list).transform(text)
-#     print(text)
-text = LowerCaseConverter().transform(text)
-#     print(text)
-text = DigitLetterSplitter().transform(text)
-#     print(text)
-text = DigitCommaDigitMerger().transform(text)
-#     print(text)
-text = NumberDigitMapper().transform(text)
-#     print(text)
-text = getWords(text)
-#     print(text)
+for col in columns:
+    StartCoTime = time.time()
+    logger.info("KAGGLE: Cleaning col: {}".format(col))
+    pdseries = df[col].fillna("")
+    for processor in processors:
+        logger.info("KAGGLE: applying {}".format(str(processor)))
+        pdseries = pdseries.apply(processor.transform)
+        logger.info("KAGGLE: {}, {:.0f} secs".format(str(processor), time.time() - StartCoTime))
+    df[col] = pdseries
+    logger.info("KAGGLE: Cleaned col: {} in {:.0f} sec".format(col, time.time() - StartCoTime))
+
+filename = "ItemInfo_cleaned.pkl"
+logger.info("KAGGLE: Saving in {}".format(filename))
+pkl_utils._save(os.path.join(config.PICKLE_DATA_FOLDER, filename), df)
+logger.info("KAGGLE: Script finished in {:.0f} sec".format(time.time() - starttime))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# for col in columns:
+#
+#     df[col].fillna("", inplace=True)
+#
+#     new_col = []
+#     for i, row in enumerate(df[col].values):
+#         if i % 10000 == 0:
+#             print(i)

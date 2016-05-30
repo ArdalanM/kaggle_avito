@@ -118,3 +118,7 @@ pd_data.drop(['attrsJSON_1', 'attrsJSON_1',
 # for lab in labos:
 #     train[lab] = train['titulaires'].apply(lambda x : 1 if lab in x else 0)
 #     test[lab] = test['titulaires'].apply(lambda x : 1 if lab in x else 0)
+
+
+
+

@@ -132,12 +132,13 @@ class DataFrameDoc2Vec(DataFrameWord2Vec):
 
 
 # ---------------------- Main ----------------------
-logger = logging_utils._get_logger(config.CODE_FOLDER, "2_train_w2v.log")
+logger = logging_utils._get_logger(config.LOG_FOLDER, "2_train_w2v.log")
 
-logger.info("KAGGLE: Loading: {}".format(config.ALL_DATA_RAW))
-df = pkl_utils._load(config.ALL_DATA_RAW)
+logger.info("KAGGLE: Loading: {}".format(config.ITEMINFO_RAW))
+df = pkl_utils._load(config.ITEMINFO_RAW)
 
-columns = ["title_1", "description_1", "title_2", "description_2"]
+
+columns = ["title", "description"]
 columns = [col for col in columns if col in df.columns]
 
 logger.info("KAGGLE: Fillna, '\\n' ==> "" ")
@@ -146,31 +147,31 @@ for col in columns:
     df[col] = df[col].apply(lambda r: r.replace("\n", " "))
 
 # TRAINING DOC2VEC
-model_param = {
-    "alpha": config.W2V_ALPHA,
-    "learning_rate_decay": config.W2V_LEARNING_RATE_DECAY,
-    "n_epoch": config.W2V_N_EPOCH,
-    "sg": 1,  # not use
-    "dm": 1,
-    "hs": 1,
-    "min_count": config.W2V_MIN_COUNT,
-    "size": config.W2V_DIM,
-    "sample": 0.001,
-    "window": config.W2V_WINDOW,
-    "workers": config.W2V_WORKERS,
-}
-model_dir = config.WORD2VEC_MODEL_DIR
-model_name = "d2v_{}_split[{}]_s{}_win{}_mc{}_iter{}_decay{}.model".format(
-    config.ALL_DATA_RAW.split("_")[-1],
-    token_pattern,
-    model_param["size"],
-    model_param["window"],
-    model_param["min_count"],
-    model_param["n_epoch"],
-    model_param['learning_rate_decay'])
-doc2vec = DataFrameDoc2Vec(df, columns, model_param)
-doc2vec.train()
-doc2vec.save(model_dir, model_name)
+# model_param = {
+#     "alpha": config.W2V_ALPHA,
+#     "learning_rate_decay": config.W2V_LEARNING_RATE_DECAY,
+#     "n_epoch": config.W2V_N_EPOCH,
+#     "sg": 1,  # not use
+#     "dm": 1,
+#     "hs": 1,
+#     "min_count": config.W2V_MIN_COUNT,
+#     "size": config.W2V_DIM,
+#     "sample": 0.001,
+#     "window": config.W2V_WINDOW,
+#     "workers": config.W2V_WORKERS,
+# }
+# model_dir = config.WORD2VEC_MODEL_DIR
+# model_name = "d2v_{}_split[{}]_s{}_win{}_mc{}_iter{}_decay{}.model".format(
+#     config.ALL_DATA_RAW.split("_")[-1],
+#     token_pattern,
+#     model_param["size"],
+#     model_param["window"],
+#     model_param["min_count"],
+#     model_param["n_epoch"],
+#     model_param['learning_rate_decay'])
+# doc2vec = DataFrameDoc2Vec(df, columns, model_param)
+# doc2vec.train()
+# doc2vec.save(model_dir, model_name)
 
 # TRAINING W2V
 model_param = {
@@ -199,4 +200,6 @@ logger.info("KAGGLE: model name: {}".format(model_name))
 logger.info("KAGGLE: training w2v with params: {}".format(model_param))
 word2vec = DataFrameWord2Vec(df, columns, model_param)
 word2vec.train()
+logger.info("KAGGLE: training complete")
 word2vec.save(model_dir, model_name)
+logger.info("KAGGLE: model saved in : {}".format(model_dir))

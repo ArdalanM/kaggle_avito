@@ -8,8 +8,6 @@ import pandas as pd
 import config
 from lib import utils, logging_utils, pkl_utils
 
-print(config.DATA_FOLDER)
-
 def load_merge(Category, Location, ItemPair, ItemInfo):
     logger.info("Loading train parts")
     logger.info(Category)
@@ -72,31 +70,41 @@ def load_merge(Category, Location, ItemPair, ItemInfo):
 
     return pdtrain
 
+
 if __name__ == "__main__":
 
-    logger = logging_utils._get_logger(config.CODE_FOLDER, "1_load_merge_data.log")
+    logger = logging_utils._get_logger(config.LOG_FOLDER, "1_load_merge_data.log")
 
-    logger.info("load train set")
     Category = os.path.join(config.DATA_FOLDER, "Category.csv.zip")
     Location = os.path.join(config.DATA_FOLDER, "Location.csv.zip")
-    ItemPair = os.path.join(config.DATA_FOLDER, "ItemPairs_train.csv.zip")
-    ItemInfo = os.path.join(config.DATA_FOLDER, "ItemInfo_train.csv.zip")
-    pdtrain = load_merge(Category, Location, ItemPair, ItemInfo)
 
-    logger.info("load test set")
-    Category_test = os.path.join(config.DATA_FOLDER, "Category.csv.zip")
-    Location_test = os.path.join(config.DATA_FOLDER, "Location.csv.zip")
+    ItemPair_train = os.path.join(config.DATA_FOLDER, "ItemPairs_train.csv.zip")
+    ItemInfo_train = os.path.join(config.DATA_FOLDER, "ItemInfo_train.csv.zip")
+
     ItemPair_test = os.path.join(config.DATA_FOLDER, "ItemPairs_test.csv.zip")
     ItemInfo_test = os.path.join(config.DATA_FOLDER, "ItemInfo_test.csv.zip")
-    pdtest = load_merge(Category_test, Location_test, ItemPair_test, ItemInfo_test)
 
     logger.info("merge both dataset")
+    pdtrain = load_merge(Category, Location, ItemPair_train, ItemInfo_train)
+    pdtest = load_merge(Category, Location, ItemPair_test, ItemInfo_test)
     pdall = pdtrain.append(pdtest)
+
+
+    logger.info("Merging Item info only")
+    pdItemInfo_train, _ = utils.loadFileinZipFile(ItemInfo_train, encoding='utf-8')
+    pdItemInfo_test, _ = utils.loadFileinZipFile(ItemInfo_test, encoding='utf-8')
+    pdCategory, _ = utils.loadFileinZipFile(Category, encoding='utf-8')
+    pdLocation, _ = utils.loadFileinZipFile(Location, encoding='utf-8')
+
+    pd_data = pdItemInfo_train.append(pdItemInfo_test)
+    pd_data = pd.merge(pd_data, pdCategory, how='left', on='categoryID')
+    pd_data = pd.merge(pd_data, pdLocation, how='left', on='locationID')
+
 
     logger.info("save to pickle")
     pkl_utils._save(os.path.join(config.PICKLE_DATA_FOLDER, "train_raw.pkl"), pdtrain)
     pkl_utils._save(os.path.join(config.PICKLE_DATA_FOLDER, "test_raw.pkl"), pdtest)
     pkl_utils._save(os.path.join(config.PICKLE_DATA_FOLDER, "all_raw.pkl"), pdall)
-
+    pkl_utils._save(os.path.join(config.PICKLE_DATA_FOLDER, "ItemInfo_raw.pkl"), pd_data)
 
 
