@@ -134,8 +134,9 @@ class DataFrameDoc2Vec(DataFrameWord2Vec):
 # ---------------------- Main ----------------------
 logger = logging_utils._get_logger(config.LOG_FOLDER, "2_train_w2v.log")
 
-logger.info("KAGGLE: Loading: {}".format(config.ITEMINFO_RAW))
+logger.info("KAGGLE: Loading: {}".format(config.ITEMINFO_CLEANED))
 df = pkl_utils._load(config.ITEMINFO_RAW)
+
 
 
 columns = ["title", "description"]
@@ -147,31 +148,31 @@ for col in columns:
     df[col] = df[col].apply(lambda r: r.replace("\n", " "))
 
 # TRAINING DOC2VEC
-# model_param = {
-#     "alpha": config.W2V_ALPHA,
-#     "learning_rate_decay": config.W2V_LEARNING_RATE_DECAY,
-#     "n_epoch": config.W2V_N_EPOCH,
-#     "sg": 1,  # not use
-#     "dm": 1,
-#     "hs": 1,
-#     "min_count": config.W2V_MIN_COUNT,
-#     "size": config.W2V_DIM,
-#     "sample": 0.001,
-#     "window": config.W2V_WINDOW,
-#     "workers": config.W2V_WORKERS,
-# }
-# model_dir = config.WORD2VEC_MODEL_DIR
-# model_name = "d2v_{}_split[{}]_s{}_win{}_mc{}_iter{}_decay{}.model".format(
-#     config.ALL_DATA_RAW.split("_")[-1],
-#     token_pattern,
-#     model_param["size"],
-#     model_param["window"],
-#     model_param["min_count"],
-#     model_param["n_epoch"],
-#     model_param['learning_rate_decay'])
-# doc2vec = DataFrameDoc2Vec(df, columns, model_param)
-# doc2vec.train()
-# doc2vec.save(model_dir, model_name)
+model_param = {
+    "alpha": config.W2V_ALPHA,
+    "learning_rate_decay": config.W2V_LEARNING_RATE_DECAY,
+    "n_epoch": config.W2V_N_EPOCH,
+    "sg": 1,  # not use
+    "dm": 1,
+    "hs": 1,
+    "min_count": config.W2V_MIN_COUNT,
+    "size": config.W2V_DIM,
+    "sample": 0.001,
+    "window": config.W2V_WINDOW,
+    "workers": config.W2V_WORKERS,
+}
+model_dir = config.WORD2VEC_MODEL_DIR
+model_name = "d2v_{}_split[{}]_s{}_win{}_mc{}_iter{}_decay{}.model".format(
+    config.ALL_DATA_CLEANED.split("_")[-1],
+    token_pattern,
+    model_param["size"],
+    model_param["window"],
+    model_param["min_count"],
+    model_param["n_epoch"],
+    model_param['learning_rate_decay'])
+doc2vec = DataFrameDoc2Vec(df, columns, model_param)
+doc2vec.train()
+doc2vec.save(model_dir, model_name)
 
 # TRAINING W2V
 model_param = {
@@ -188,7 +189,7 @@ model_param = {
 }
 model_dir = config.WORD2VEC_MODEL_DIR
 model_name = "w2v_{}_split[{}]_s{}_win{}_mc{}_iter{}_decay{}.model".format(
-    config.ALL_DATA_RAW.split("_")[-1],
+    config.ALL_DATA_CLEANED.split("_")[-1],
     token_pattern,
     model_param["size"],
     model_param["window"],

@@ -21,16 +21,19 @@ LOG_FOLDER = "%s/logs" % DATA_FOLDER
 TRAIN_RAW = "{}/train_raw.pkl".format(PICKLE_DATA_FOLDER)
 TEST_RAW = "{}/test_raw.pkl".format(PICKLE_DATA_FOLDER)
 ALL_DATA_RAW = "{}/all_raw.pkl".format(PICKLE_DATA_FOLDER)
+ALL_DATA_CLEANED = "{}/all_cleaned.pkl".format(PICKLE_DATA_FOLDER)
+
 ITEMINFO_RAW = "{}/ItemInfo_raw.pkl".format(PICKLE_DATA_FOLDER)
+ITEMINFO_CLEANED = "{}/ItemInfo_cleaned.pkl".format(PICKLE_DATA_FOLDER)
 
 # ------------------------ W2V D2V ------------------------
 W2V_ALPHA = 0.025
 W2V_LEARNING_RATE_DECAY = 0.5
 W2V_N_EPOCH = 5
 W2V_MIN_COUNT = 5
-W2V_DIM = 50
+W2V_DIM = 100
 W2V_WINDOW = 5
-W2V_WORKERS = 5
+W2V_WORKERS = 4
 
 
 TRAIN_SIZE = 2991396
