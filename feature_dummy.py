@@ -27,7 +27,6 @@ def do_corr_and_save(x,y, feat_name=""):
 
 df = pkl_utils._load(config.ALL_DATA_CLEANED)
 y = df['isDuplicate'].values
-
 logname = "generate_feature_dummy_%s.log" % time_utils._timestamp()
 logger = logging_utils._get_logger(config.LOG_FOLDER, logname)
 
@@ -42,31 +41,7 @@ do_corr_and_save(feat1.values,y, feat_name="ctn_itemID_1")
 do_corr_and_save(feat2.values,y, feat_name="ctn_itemID_2")
 
 
-# GPS distance
-def _haversine(df, lon1, lat1, lon2, lat2):
-    from math import radians, cos, sin, asin, sqrt
-    """
-    Calculate the great circle distance between two points
-    on the earth (specified in decimal degrees)
-    """
-    # convert decimal degrees to radians
-    lon1 = df[lon1].apply(radians).values
-    lat1 = df[lat1].apply(radians).values
-    lon2 = df[lon2].apply(radians).values
-    lat2 = df[lat2].apply(radians).values
 
-    # haversine formula
-    dlon = lon2 - lon1
-    dlat = lat2 - lat1
-    a = np.sin(dlat / 2) ** 2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon / 2) ** 2
-    c = 2 * np.arcsin(np.sqrt(a))
-    r = 6371  # Radius of earth in kilometers. Use 3956 for miles
-    return c * r
-haversine = _haversine(df, "lon_1", "lat_1", "lon_2", "lat_2")
-do_corr_and_save(haversine,y, feat_name="haversine")
-
-
-ItemInfo = pkl_utils._load(config.ITEMINFO_CLEANED)
 
 
 

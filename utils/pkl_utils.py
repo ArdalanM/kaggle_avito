@@ -1,6 +1,8 @@
+# -*- coding: utf-8 -*-
 """
-@author: Ardalan MEHRANI <ardalan.mehrani@iosquare.com>
-@brief: utils
+@author: Chenglong Chen <c.chenglong@gmail.com>
+@brief: utils for pickle
+
 """
 
 import pickle

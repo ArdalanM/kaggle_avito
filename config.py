@@ -3,7 +3,7 @@
 @author: Ardalan MEHRANI <ardalan.mehrani@iosquare.com>
 @brief: configs
 """
-from lib import os_utils
+from utils import os_utils
 
 # ------------------------ PATH ------------------------
 ROOT_FOLDER = ".."
@@ -36,12 +36,18 @@ W2V_WINDOW = 5
 W2V_WORKERS = 4
 
 
+LABEL_COL = 'isDuplicate'
 TRAIN_SIZE = 2991396
 FEAT_FILE_SUFFIX = ".pkl"
 # missing value
 MISSING_VALUE_STRING = "MISSINGVALUE"
 MISSING_VALUE_NUMERIC = -1.
 
+CPU = "cpu"
+GPU0 = "gpu0"
+GPU1 = "gpu1"
+NTHREAD = 6
+SEED = 2016
 
 # ---------------------- CREATE PATH --------------------
 DIRS = []
