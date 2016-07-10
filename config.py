@@ -3,10 +3,11 @@
 @author: Ardalan MEHRANI <ardalan.mehrani@iosquare.com>
 @brief: configs
 """
+import os
 from utils import os_utils
 
 # ------------------------ PATH ------------------------
-ROOT_FOLDER = ".."
+ROOT_FOLDER = os.path.abspath("..")
 CODE_FOLDER = "%s/code" % ROOT_FOLDER
 
 DATA_FOLDER = "%s/data" % ROOT_FOLDER
@@ -17,11 +18,10 @@ WORD2VEC_MODEL_DIR = "%s/3_w2v" % DATA_FOLDER
 LOG_FOLDER = "%s/logs" % DATA_FOLDER
 
 
-
 TRAIN_RAW = "{}/train_raw.pkl".format(PICKLE_DATA_FOLDER)
 TEST_RAW = "{}/test_raw.pkl".format(PICKLE_DATA_FOLDER)
 ALL_DATA_RAW = "{}/all_raw.pkl".format(PICKLE_DATA_FOLDER)
-ALL_DATA_CLEANED = "{}/all_cleaned.pkl".format(PICKLE_DATA_FOLDER)
+ALL_DATA_CLEANED = "{}/all_cleaned_dhash.pkl".format(PICKLE_DATA_FOLDER)
 
 ITEMINFO_RAW = "{}/ItemInfo_raw.pkl".format(PICKLE_DATA_FOLDER)
 ITEMINFO_CLEANED = "{}/ItemInfo_cleaned.pkl".format(PICKLE_DATA_FOLDER)
