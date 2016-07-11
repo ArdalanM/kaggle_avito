@@ -95,7 +95,7 @@ X_test = X_cv[test_idx, :]
 Y_test = Y_cv[test_idx]
 
 
-clf = XGBClassifier(n_estimators=5000, learning_rate=0.03, max_depth=10, nthread=4)
+clf = XGBClassifier(n_estimators=2000, learning_rate=0.05, max_depth=10, nthread=12)
 
 
 clf.fit(X_train, Y_train, eval_set=[(X_test, Y_test)],
